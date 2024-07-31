@@ -11,7 +11,9 @@ const adminAuth = async (req, res, next)=>{
                 .json(apiResponse(400, {}, "Access Token not found"));
         }
 
-        await jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+        const admin = await jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+
+        req.admin._id = admin._id;
 
         next();
 

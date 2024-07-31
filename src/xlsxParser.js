@@ -13,7 +13,7 @@ function rightCell(currCell){
 
     let rem = 1;
     
-    for(let i = ascii.length-1; i >= 0 && rem == 1; i--){
+    for(let i = ascii.length-1; i >= 0 && rem === 1; i--){
         let newAscii = rem+ascii[i];
 
         rem = parseInt(newAscii/26);
@@ -119,7 +119,9 @@ function xlsxParserUtil(sheet){
     }
 
     for(const cell in data){
-        data[cell] = getValue(sheet, rightCell(fields[cell]));
+        const dataCell = rightCell(fields[cell]);
+        if (sheet.hasOwnProperty(dataCell)) data[cell] = getValue(sheet, dataCell);
+
     }
 
 
@@ -137,15 +139,16 @@ function xlsxParserUtil(sheet){
     data["Amenities"] = amenities;
 
     
-    const Specialities = {}
-
+    const Specialities = []
     while(sheet.hasOwnProperty(specialitiesCell)){
         const name = getValue(sheet, specialitiesCell);
 
         const dis = getDownData(sheet, downCell(specialitiesCell));
 
-        Specialities[name] = dis;
-
+        const obj = {}
+        obj["speciality"] = name;
+        obj["subfields"] = dis;
+        Specialities.push(obj);
         specialitiesCell = rightCell(specialitiesCell);
     }
 
@@ -157,15 +160,18 @@ function xlsxParserUtil(sheet){
 
 function xlsxParser(sheets){
     const data = [];
-    for(let i = 0; i < sheets.length; i++){
-        const sheetName = sheets.SheetNames[i];
-        data.push(xlsxParserUtil(sheets.Sheets[sheetName]));
-    }
+    // console.log(sheets)
+    let length = sheets.SheetNames.length;
 
+    for(let i = 0; i < length; i++){
+        let sheetName = sheets.SheetNames[i];
+        const currData = xlsxParserUtil(sheets.Sheets[sheetName]);
+        data.push(currData);
+
+    }
     return data;
 }
 
-console.log("HEllo there")
 
 const data = xlsxParser(workerData.sheets);
 

@@ -4,13 +4,15 @@ import apiResponse from "../utils/apiResponse.js";
 
 // Models
 import Admin from "../models/admin.model.js";
+import Hospital from "../models/hospital.model.js";
 
+import XLSX from "xlsx";
 import bcrypt from "bcrypt";
-import Worker from "worker_threads";
+import {Worker} from "worker_threads";
 
 
 // Path
-const parserPath = "../xlsxParser.js";
+const parserPath = "./src/xlsxParser.js";
 
 
 const login = async (req, res)=>{
@@ -54,16 +56,75 @@ const login = async (req, res)=>{
     }
 }
 
-const changePassword = (req, res)=>{
+const changePassword = async (req, res)=>{
+    try{
 
+        let {oldPassword, newPassword} = req.body;
+
+        if (!password || !newPassword){
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send Valid Password"));
+        }
+
+        const admin = await Admin.findById(req.admin._id);
+
+        const passwordCheck = await bcrypt(oldPassword, admin.password);
+        if (!passwordCheck) {
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Your old password is incorrect"));
+        }
+
+        newPassword = bcrypt.hash(newPassword, process.env.SALT_ROUND);
+
+        await Admin.findByIdAndUpdate({password:newPassword});
+
+        return res
+            .status(200)
+            .json(apiResponse());
+
+
+    }
+
+    catch(err){
+        console.log("Error while updating the password : ", err);
+        return res
+            .status(500)
+            .json(apiResponse(500, {}, "Something went wrong"));
+    }
 }
 
 const uploadHospitals = async (req, res)=>{
     try{
-        const parserWorker = new Worker(parserPath, {workerData : {sheets: req.file}});
-        console.log(parserWorker);
+        const data = XLSX.readFile(req.file.path);
 
-        res.send("ok");
+        const parserWorker = new Worker(parserPath, {workerData : {sheets: data}});
+
+        parserWorker.on("message", async (data)=>{
+            for(let i = 0; i < data.length; i++){
+                if (!data[i]["S.No"] || data[i]["S.No"] === "") continue;
+
+                const newHospital = await Hospital.create({
+                    sNo: data[i]["S.No"],
+                    address: data[i]["Address"],
+                    beds:data[i]["Beds"],
+                    name: data[i]["Hospital Name"],
+                    bookingLink: data[i]["Booking Link"],
+                    website: data[i]["Website"],
+                    email: data[i]["e-mail"],
+                    contact1: data[i]["Contact 1"],
+                    contact2: data[i]["Contact 2"],
+                    emergency: data[i]["Emergency"],
+                    amenities: data[i]["Amenities"],
+                    specialities:data[i]["Specialities"],
+                })
+            }
+
+            return res
+                .status(200)
+                .json(apiResponse());
+        })
     }
     catch (err){
         console.log("Error while uploading hospitals : ", err);
@@ -73,4 +134,4 @@ const uploadHospitals = async (req, res)=>{
     }
 }
 
-export {login, uploadHospitals}
+export {login, uploadHospitals, changePassword}
