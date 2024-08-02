@@ -13,9 +13,11 @@ app.get("/helloworld", (req, res)=>{
 
 // Routers
 import userRoute from "./routes/user.route.js";
-import adminRoute from "./routes/admin.route.js"
+import adminRoute from "./routes/admin.route.js";
+import hospitalRoute from "./routes/hospital.route.js";
 
 app.use("/admin", adminRoute);
 app.use("/user", userRoute);
+app.use("/hospital", hospitalRoute);
 
 export default app;

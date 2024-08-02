@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const SubSchema = new mongoose.Schema({
     speciality:{
         type:String,
@@ -10,7 +11,6 @@ const SubSchema = new mongoose.Schema({
 }, { _id: false });
 
 const hospitalSchema = mongoose.Schema({
-
     sNo:{
         type:String,
         required:true,
@@ -50,8 +50,8 @@ const hospitalSchema = mongoose.Schema({
     specialities:{
         type:[SubSchema]
     }
-
 })
+
 
 const HospitalModel = mongoose.model("Hospital", hospitalSchema);
 

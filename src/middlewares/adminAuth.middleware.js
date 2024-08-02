@@ -13,17 +13,20 @@ const adminAuth = async (req, res, next)=>{
 
         const admin = await jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
 
-        req.admin._id = admin._id;
+        req.admin = {_id:admin._id};
+
 
         next();
 
     }
 
     catch(err){
+
         return res
             .status(400)
             .json(apiResponse(400, {}, "Access Token expired"));
     }
 }
+
 
 export default adminAuth;

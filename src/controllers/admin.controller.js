@@ -1,18 +1,11 @@
 // Utils
-import generateAccessAndRefreshToken from "../utils/accessAndRefreshToken.js";
+import {generateAccessAndRefreshToken, renewToken} from "../utils/accessAndRefreshToken.js";
 import apiResponse from "../utils/apiResponse.js";
 
 // Models
 import Admin from "../models/admin.model.js";
-import Hospital from "../models/hospital.model.js";
-
-import XLSX from "xlsx";
 import bcrypt from "bcrypt";
-import {Worker} from "worker_threads";
 
-
-// Path
-const parserPath = "./src/xlsxParser.js";
 
 
 const login = async (req, res)=>{
@@ -34,7 +27,13 @@ const login = async (req, res)=>{
                 .json(apiResponse(400, {}, "Wrong password"));
         }
 
-        const {accessToken, refreshToken} = await generateAccessAndRefreshToken({_id:admin._id}, Admin, "1hr", "1d");
+        const {accessToken, refreshToken} = await  generateAccessAndRefreshToken({_id:admin._id}, Admin, "1h", "1d");
+
+        if (!accessToken || !refreshToken){
+            return res
+                .status(500)
+                .json(apiResponse(500, {}, "Something went wrong"));
+        }
 
         const options = {
             httpOnly:true,
@@ -52,7 +51,7 @@ const login = async (req, res)=>{
         console.log("Error while login admin : ", err);
         return res
             .status(500)
-            .json(apiResponse(500, {}, "Something went wrong"));
+            .json(apiResponse(500, {}, "Something went wrong !"));
     }
 }
 
@@ -61,28 +60,37 @@ const changePassword = async (req, res)=>{
 
         let {oldPassword, newPassword} = req.body;
 
-        if (!password || !newPassword){
+        if (!oldPassword || !newPassword){
             return res
                 .status(400)
-                .json(apiResponse(400, {}, "Send Valid Password"));
+                .json(apiResponse(400, {}, "Send Password"));
         }
 
         const admin = await Admin.findById(req.admin._id);
 
-        const passwordCheck = await bcrypt(oldPassword, admin.password);
+        const passwordCheck = await bcrypt.compare(oldPassword, admin.password);
         if (!passwordCheck) {
             return res
                 .status(400)
                 .json(apiResponse(400, {}, "Your old password is incorrect"));
         }
 
-        newPassword = bcrypt.hash(newPassword, process.env.SALT_ROUND);
+        newPassword = await bcrypt.hash(newPassword, parseInt(process.env.SALT_ROUND));
 
-        await Admin.findByIdAndUpdate({password:newPassword});
+        await Admin.findByIdAndUpdate(admin._id, {password:newPassword});
+
+        const {refreshToken, accessToken} = await generateAccessAndRefreshToken({_id:admin._id}, Admin, "1h", "1d");
+
+        const options = {
+            httpOnly:true,
+            secure:true,
+        }
 
         return res
             .status(200)
-            .json(apiResponse());
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(apiResponse(200, {accessToken, refreshToken}, "Successfully changed the password"));
 
 
     }
@@ -95,43 +103,38 @@ const changePassword = async (req, res)=>{
     }
 }
 
-const uploadHospitals = async (req, res)=>{
+
+
+const refreshTokens = async (req, res)=>{
     try{
-        const data = XLSX.readFile(req.file.path);
 
-        const parserWorker = new Worker(parserPath, {workerData : {sheets: data}});
+        let refreshToken = req.cookies?.refreshToken || req.headers.refreshtoken;
 
-        parserWorker.on("message", async (data)=>{
-            for(let i = 0; i < data.length; i++){
-                if (!data[i]["S.No"] || data[i]["S.No"] === "") continue;
+        const data = await renewToken(refreshToken, Admin, "1h", "1d");
 
-                const newHospital = await Hospital.create({
-                    sNo: data[i]["S.No"],
-                    address: data[i]["Address"],
-                    beds:data[i]["Beds"],
-                    name: data[i]["Hospital Name"],
-                    bookingLink: data[i]["Booking Link"],
-                    website: data[i]["Website"],
-                    email: data[i]["e-mail"],
-                    contact1: data[i]["Contact 1"],
-                    contact2: data[i]["Contact 2"],
-                    emergency: data[i]["Emergency"],
-                    amenities: data[i]["Amenities"],
-                    specialities:data[i]["Specialities"],
-                })
-            }
+        const options = {
+            httpOnly: true,
+            secure: true,
+        }
 
-            return res
-                .status(200)
-                .json(apiResponse());
-        })
+        return res
+            .status(200)
+            .cookie("accessToken", data.accessToken, options)
+            .cookie("refreshToken", data.refreshToken, options)
+            .json(apiResponse(200, {
+                refreshToken:data.refreshToken,
+                accessToken:data.accessToken,
+            }));
+
     }
-    catch (err){
-        console.log("Error while uploading hospitals : ", err);
+
+    catch(err){
+        console.log("Error while generating refresh Token : ", err);
+
         return res
             .status(500)
             .json(apiResponse(500, {}, "Something went wrong"));
     }
 }
 
-export {login, uploadHospitals, changePassword}
+export {login, changePassword, refreshTokens}
