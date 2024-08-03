@@ -7,9 +7,8 @@ const UserSchema = mongoose.Schema({
         required:true,
     },
 
-    password:{
+    name:{
         type:String,
-        required:true,
     },
 
     age:{
@@ -24,7 +23,7 @@ const UserSchema = mongoose.Schema({
         type:String,
     },
 
-    disease:[{
+    diseases:[{
         type:String,
     }],
 

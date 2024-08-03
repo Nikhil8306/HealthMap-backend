@@ -49,7 +49,15 @@ const hospitalSchema = mongoose.Schema({
     }],
     specialities:{
         type:[SubSchema]
-    }
+    },
+    reviews:[{
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+        },
+        review:{
+            type: String,
+        }
+    }]
 })
 
 

@@ -108,7 +108,7 @@ const changePassword = async (req, res)=>{
 const refreshTokens = async (req, res)=>{
     try{
 
-        let refreshToken = req.cookies?.refreshToken || req.headers.refreshtoken;
+        let refreshToken = req.cookies?.refreshToken || req.headers?.refreshToken;
 
         const data = await renewToken(refreshToken, Admin, "1h", "1d");
 

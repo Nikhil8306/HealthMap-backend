@@ -99,5 +99,21 @@ const deleteHospital = async(req, res)=>{
     }
 }
 
+const hospitalSearch = async(req, res)=>{
+    try{
+
+        const {input} = req.body;
+
+
+    }
+    catch(err){
+        console.log("Error while searching hospitals : ", err);
+        return res
+            .status(500)
+            .json(apiResponse(500, {}, "Something went wrong"));
+    }
+}
+
+const
 
 export {uploadHospitals, deleteHospital};
