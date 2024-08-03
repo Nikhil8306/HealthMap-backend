@@ -28,7 +28,7 @@ const login = async (req, res)=>{
     }
 
     catch(err){
-        console.error("Error while registering user: ");
+        console.error("Error during log in user: ");
         console.log(err);
         return res
         .status(500)

@@ -7,6 +7,9 @@ import app from "./src/app.js";
 import mongoose from "mongoose";
 import { initializeClient } from "./src/utils/sms.js";
 
+import cors from "cors";
+app.use(cors());
+
 
 mongoose.connect(process.env.MONGODB_URI)
 .then(()=>{
