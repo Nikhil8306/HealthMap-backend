@@ -1,15 +1,13 @@
 // Utils
 import apiResponse from "../utils/apiResponse.js";
-import { passwordValidation } from "../utils/validations.js";
 import { sendVerificationSms, verifyCode } from "../utils/sms.js";
 import {generateAccessAndRefreshToken, renewToken} from "../utils/accessAndRefreshToken.js";
 
 // Models
 import User from "../models/user.model.js";
 
-import bcrypt from "bcrypt";
 
-const register = async (req, res)=>{
+const login = async (req, res)=>{
     try{
 
         let {mobile, countryCode} = req.body;
@@ -208,4 +206,4 @@ const refreshTokens = async (req, res)=>{
     }
 }
 
-export {register, verifyOtp, updateProfile, getProfile, logout, refreshTokens};
+export {login, verifyOtp, updateProfile, getProfile, logout, refreshTokens};

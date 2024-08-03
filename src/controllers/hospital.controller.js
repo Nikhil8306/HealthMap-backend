@@ -114,6 +114,5 @@ const hospitalSearch = async(req, res)=>{
     }
 }
 
-const
 
 export {uploadHospitals, deleteHospital};

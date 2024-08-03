@@ -1,9 +1,3 @@
-
-const passwordValidation = (password)=>{
-    if (password.length < 6) return false;
-    return true;
-}
-
 const mobileValidator = (mobile)=>{
     if (mobile.length < 4 || mobile.length > 15) return false;
     for(let i = 0; i < mobile.length; i++){
@@ -13,4 +7,4 @@ const mobileValidator = (mobile)=>{
 }
 
 
-export {passwordValidation, mobileValidator}
+export {mobileValidator}
