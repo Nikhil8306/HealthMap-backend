@@ -26,6 +26,9 @@ const hospitalSchema = mongoose.Schema({
         type:String,
         required:true,
     },
+    images:[{
+        type:String,
+    }],
     bookingLink:{
         type:String,
     },
@@ -50,6 +53,12 @@ const hospitalSchema = mongoose.Schema({
     specialities:{
         type:[SubSchema]
     },
+    placeId:{
+        type:String,
+    },
+    rating:{
+        type:Number,
+    },
     reviews:[{
         user: {
             type: mongoose.Schema.Types.ObjectId,
@@ -57,7 +66,7 @@ const hospitalSchema = mongoose.Schema({
         review:{
             type: String,
         }
-    }]
+    }, { _id: false }]
 })
 
 

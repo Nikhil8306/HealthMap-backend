@@ -1,11 +1,25 @@
 // Utils
 import apiResponse from "../utils/apiResponse.js";
 import { sendVerificationSms, verifyCode } from "../utils/sms.js";
-import {generateAccessAndRefreshToken, renewToken} from "../utils/accessAndRefreshToken.js";
+import {mobileValidation, numberValidation, countryCodeValidation, lengthValidation, genderValidation} from "../utils/validations.js";
 
 // Models
 import User from "../models/user.model.js";
+import jwt from "jsonwebtoken";
 
+const generateAccessAndRefreshToken = async (payload)=>{
+    try{
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_USER, {expiresIn:process.env.ACCESS_TOKEN_EXPIRY});
+        const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET_USER, {expiresIn:process.env.REFRESH_TOKEN_EXPIRY});
+
+        await User.findByIdAndUpdate(payload._id, {refreshToken});
+
+        return {accessToken:accessToken, refreshToken:refreshToken};
+    }
+    catch(err){
+        return err;
+    }
+}
 
 const login = async (req, res)=>{
     try{
@@ -19,6 +33,21 @@ const login = async (req, res)=>{
         
 
         if (!countryCode) countryCode = "+91";
+
+
+        // Validations
+        if (!mobileValidation(mobile)) {
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send valid mobile number"));
+        }
+        if (!countryCodeValidation(countryCode)){
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send valid country code"));
+        }
+
+
         mobile = countryCode+mobile;
 
         const verification = await(sendVerificationSms(mobile));
@@ -47,6 +76,24 @@ const verifyOtp = async (req, res)=>{
 
         
         if (!countryCode) countryCode = "+91";
+
+        // Validations
+        if (!mobileValidation(mobile)) {
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send valid mobile number"));
+        }
+        if (!countryCodeValidation(countryCode)){
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send valid country code"));
+        }
+        if (otp.length > 6) {
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send valid otp code"));
+        }
+
         mobile = countryCode+mobile;
 
         const verify = await verifyCode(mobile, otp);
@@ -61,12 +108,23 @@ const verifyOtp = async (req, res)=>{
             .json(apiResponse(400, {}, "Wrong otp"))
         }
 
+        let user;
+        if (!await User.findOne({mobile:mobile})) {
+            user = await User.create({
+                mobile,
+            })
+        }
+        else {
+            user = await User.findOne({mobile:mobile});
+        }
 
-        const newUser = await User.create({
-            mobile,
-        })
+        const {accessToken, refreshToken} = await generateAccessAndRefreshToken({_id:user._id}, User);
 
-        const {accessToken, refreshToken} = await generateAccessAndRefreshToken({_id:newUser._id}, User);
+        if (!accessToken || !refreshToken){
+            return res
+                .status(500)
+                .json(apiResponse(500, {}, "Something went wrong"));
+        }
 
         const options = {
             httpOnly:true,
@@ -111,6 +169,21 @@ const updateProfile = async(req, res)=>{
 
         }
 
+
+        //validations
+        if (
+            !lengthValidation(name, 15) ||
+            (age && !numberValidation(age, 1, 150)) ||
+            (gender && !genderValidation(gender)) ||
+            (address && !lengthValidation(address, 80))
+        ) {
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send proper data"));
+        }
+
+
+
         await User.findByIdAndUpdate(req.user._id, {
             name,
             age,
@@ -153,7 +226,7 @@ const getProfile = async (req, res)=>{
 const logout = async(req, res)=>{
     try{
 
-        await User.findOneAndUpdate(req.user._id, {
+        await User.findByIdAndUpdate(req.user._id, {
             refreshToken:""
         })
 
@@ -180,7 +253,10 @@ const logout = async(req, res)=>{
 const refreshTokens = async (req, res)=>{
     try{
         const refreshToken = req.cookies?.refreshToken || req.headers?.refreshToken;
-        const data = await renewToken(refreshToken, User);
+        const tokenData = await jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET_USER);
+
+        const data = await  generateAccessAndRefreshToken({_id:tokenData._id});
+
 
         const options = {
             httpOnly: true,
@@ -192,7 +268,7 @@ const refreshTokens = async (req, res)=>{
             .cookie("accessToken", data.accessToken, options)
             .cookie("refreshToken", data.refreshToken, options)
             .json(apiResponse(200, {
-                accessToken:data.refreshToken,
+                accessToken:data.accessToken,
                 refreshToken:data.refreshToken
             }));
 
@@ -201,7 +277,7 @@ const refreshTokens = async (req, res)=>{
     catch(err){
         console.log("Error while refresh Token : ", err);
         return res
-            .status(500)
+            .status(401)
             .json(apiResponse(500, {}, "Something went wrong"));
     }
 }

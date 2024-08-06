@@ -1,12 +1,21 @@
 // Utils
-import {generateAccessAndRefreshToken, renewToken} from "../utils/accessAndRefreshToken.js";
 import apiResponse from "../utils/apiResponse.js";
 
 // Models
 import Admin from "../models/admin.model.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 
+const generateAccessToken = async (payload)=>{
+    try{
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_ADMIN, {expiresIn:process.env.ACCESS_TOKEN_EXPIRY});
+        return {accessToken:accessToken};
+    }
+    catch(err){
+        return err;
+    }
+}
 
 const login = async (req, res)=>{
     try{
@@ -27,9 +36,9 @@ const login = async (req, res)=>{
                 .json(apiResponse(400, {}, "Wrong password"));
         }
 
-        const {accessToken, refreshToken} = await  generateAccessAndRefreshToken({_id:admin._id}, Admin, "1h", "1d");
+        const {accessToken} = await generateAccessToken({_id:admin._id});
 
-        if (!accessToken || !refreshToken){
+        if (!accessToken){
             return res
                 .status(500)
                 .json(apiResponse(500, {}, "Something went wrong"));
@@ -43,8 +52,7 @@ const login = async (req, res)=>{
         return res
             .status(200)
             .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
-            .json(apiResponse(200, {accessToken, refreshToken}, "Successfully logged in"));
+            .json(apiResponse(200, {accessToken}, "Successfully logged in"));
     }
 
     catch(err) {
@@ -91,8 +99,6 @@ const changePassword = async (req, res)=>{
             .cookie("accessToken", accessToken, options)
             .cookie("refreshToken", refreshToken, options)
             .json(apiResponse(200, {accessToken, refreshToken}, "Successfully changed the password"));
-
-
     }
 
     catch(err){
@@ -104,37 +110,4 @@ const changePassword = async (req, res)=>{
 }
 
 
-
-const refreshTokens = async (req, res)=>{
-    try{
-
-        let refreshToken = req.cookies?.refreshToken || req.headers?.refreshToken;
-
-        const data = await renewToken(refreshToken, Admin, "1h", "1d");
-
-        const options = {
-            httpOnly: true,
-            secure: true,
-        }
-
-        return res
-            .status(200)
-            .cookie("accessToken", data.accessToken, options)
-            .cookie("refreshToken", data.refreshToken, options)
-            .json(apiResponse(200, {
-                refreshToken:data.refreshToken,
-                accessToken:data.accessToken,
-            }));
-
-    }
-
-    catch(err){
-        console.log("Error while generating refresh Token : ", err);
-
-        return res
-            .status(500)
-            .json(apiResponse(500, {}, "Something went wrong"));
-    }
-}
-
-export {login, changePassword, refreshTokens}
+export {login, changePassword}

@@ -15,6 +15,8 @@ app.get("/helloworld", (req, res)=>{
     res.send("Hello World")
 })
 
+
+
 // Routers
 import userRoute from "./routes/user.route.js";
 import adminRoute from "./routes/admin.route.js";

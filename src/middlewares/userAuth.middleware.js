@@ -11,7 +11,7 @@ const userAuth = async (req, res, next)=>{
                 .json(apiResponse(400, {}, "Access Token not found"));
         }
 
-        const user = await jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+        const user = await jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET_USER);
 
         req.user = {_id:user._id};
 
@@ -23,7 +23,7 @@ const userAuth = async (req, res, next)=>{
     catch(err){
 
         return res
-            .status(400)
+            .status(401)
             .json(apiResponse(400, {}, "Access Token expired"));
     }
 }
