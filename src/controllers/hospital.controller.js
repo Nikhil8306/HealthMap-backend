@@ -1,4 +1,5 @@
-import XLSX from "xlsx";
+import fs from 'fs';
+
 import {Worker} from "worker_threads";
 
 // Models
@@ -13,16 +14,17 @@ const parserPath = "./src/xlsxParser.js";
 
 const uploadHospitals = async (req, res)=>{
     try{
-        if (!req.file) {
+        if (!req.files) {
             return res
                 .status(400)
                 .json(apiResponse(400, {}, "No file found"));
         }
-        const data = XLSX.readFile(req.file.path);
+        const filePath = req.files[0].path;
 
-        const parserWorker = new Worker(parserPath, {workerData : {sheets: data}});
+        const parserWorker = new Worker(parserPath, {workerData : {filePath: filePath}});
 
         parserWorker.on("message", async (data)=>{
+                console.log("Got the data")
                 try{
                     for (let i = 0; i < data.length; i++) {
                         if (!data[i]["S.No"] || data[i]["S.No"] === "") continue;
@@ -43,8 +45,11 @@ const uploadHospitals = async (req, res)=>{
                             amenities: data[i]["Amenities"],
                             specialities: data[i]["Specialities"],
                             rating:rating,
+                            doctors: data[i]["Doctors"],
+                            images:data[i]["Images"]
                         })
                     }
+                    fs.unlinkSync(filePath)
 
                     return res
                         .status(200)
@@ -52,15 +57,20 @@ const uploadHospitals = async (req, res)=>{
                 }
 
                 catch(err){
+                    fs.unlinkSync(filePath)
+
                     console.log("Error while uploading hospitals : ", err)
                     return res
                         .status(500)
                         .json(apiResponse(500, {}, "Something went wrong"));
                 }
-        }
+
+            }
         )
+
     }
     catch (err){
+        fs.unlinkSync(filePath)
         console.log("Error while uploading hospitals : ", err);
         return res
             .status(500)

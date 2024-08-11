@@ -1,4 +1,33 @@
 import {parentPort, workerData} from 'worker_threads';
+import {uploadImage} from "./utils/cloudinary.js";
+import fs from "fs";
+import ExcelJS from "exceljs";
+import XLSX from "xlsx";
+
+
+function locToCell(row, col){
+    if (col > 321272406)
+        return 'Invalid Number'
+
+    if (col <= 0)
+        return ''
+
+    let result = ""
+    while (col) {
+        let t = col % 26
+        if (!t) {
+            t = 26
+            --col
+        }
+        result += String.fromCodePoint(t + 64)
+        col = ~~(col / 26)
+    }
+
+    result += String(row);
+
+    return result;
+}
+
 
 function rightCell(currCell){
     const ascii = [];
@@ -68,10 +97,22 @@ function getDownData(sheet, currCell){
     }
 
     return data;
-
 }
 
-function xlsxParserUtil(sheet){
+function getDownDataRange(sheet, currCell, range){
+    const data = [];
+
+    while(range > 0){
+        range--;
+        if (!sheet.hasOwnProperty(currCell)) data.push(null);
+        else data.push(getValue(sheet, currCell));
+        currCell = downCell(currCell);
+    }
+
+    return data;
+}
+
+const xlsxParserUtil = async (sheet, imageData)=>{
 
     const fields = {
         "S.No":"",
@@ -86,8 +127,10 @@ function xlsxParserUtil(sheet){
         "Emergency":"",
         "Amenities":"",
         "Specialities":"",
+        "Doctors":"",
+        "Images":"",
     }
-    let count = 12;
+    let count = 14;
 
     for(const cell in sheet){
         if (count <= 0) break;
@@ -148,31 +191,107 @@ function xlsxParserUtil(sheet){
         const obj = {}
         obj["speciality"] = name;
         obj["subfields"] = dis;
+        specialitiesCell = rightCell(specialitiesCell);
+        obj["cost"] = getDownDataRange(sheet, downCell(specialitiesCell), obj["subfields"].length);
         Specialities.push(obj);
         specialitiesCell = rightCell(specialitiesCell);
     }
 
     data["Specialities"] = Specialities;
 
+
+    let doctorCell = downCell(fields["Doctors"]);
+    const doctorData = []
+    while(sheet.hasOwnProperty(doctorCell)){
+        const spec = getValue(sheet, doctorCell);
+
+        let currCell = downCell(doctorCell);
+
+        const doctors = []
+
+        while(sheet.hasOwnProperty(currCell)){
+            // console.log(currCell)
+            const name = getValue(sheet, currCell);
+            currCell = downCell(currCell);
+            let imageUrl = "";
+            if (imageData.hasOwnProperty(currCell)){
+                const suffix = "image-"+Date.now() +"-"+ Math.round(Math.random() * 1E9)
+                const outputFilePath = "public/temp/" + suffix;
+                try{
+                    fs.writeFileSync(outputFilePath, imageData[currCell]);
+                    imageUrl = await uploadImage(outputFilePath)
+                    fs.unlinkSync(outputFilePath);
+                }
+                catch(err){
+                    fs.unlinkSync(outputFilePath);
+                    console.log("Error while uploading file: ", err);
+                }
+
+            }
+            currCell = downCell(currCell);
+            const contact = sheet.hasOwnProperty(currCell)?getValue(sheet, currCell):null;
+            currCell = downCell(currCell);
+
+            doctors.push({name, contact, image:imageUrl});
+        }
+        doctorCell = rightCell(doctorCell)
+        doctorData.push({speciality:spec, doctors});
+    }
+    data["Doctors"] = doctorData;
+
+    const images = [];
+    let imageCell = downCell(fields["Images"]);
+
+    while(imageData.hasOwnProperty(imageCell)){
+        let currImageCell = imageCell;
+        while(imageData.hasOwnProperty(currImageCell)){
+            const suffix = "image-"+Date.now() +"-"+ Math.round(Math.random() * 1E9)
+            const outputFilePath = "public/temp/" + suffix;
+            try{
+                fs.writeFileSync(outputFilePath, imageData[currImageCell]);
+                const imageUrl = await uploadImage(outputFilePath)
+                images.push(imageUrl);
+                fs.unlinkSync(outputFilePath);
+            }
+            catch(err){
+                fs.unlinkSync(outputFilePath);
+                console.log("Error while uploading file: ", err);
+            }
+            currImageCell = downCell(currImageCell);
+        }
+        imageCell = rightCell(imageCell);
+    }
+
+    data["Images"] = images;
+
+
     return data;
 
 }
 
-function xlsxParser(sheets){
+const xlsxParser = async(sheets, workbook)=>{
     const data = [];
-    // console.log(sheets)
+
     let length = sheets.SheetNames.length;
 
     for(let i = 0; i < length; i++){
         let sheetName = sheets.SheetNames[i];
-        const currData = xlsxParserUtil(sheets.Sheets[sheetName]);
-        data.push(currData);
 
+        const worksheet = workbook.getWorksheet(sheetName);
+        const imagesData = {};
+        for (const image of worksheet.getImages()) {
+            const img = workbook.model.media.find(m => m.index === image.imageId);
+            imagesData[locToCell(image.range.tl.nativeRow+1, image.range.tl.nativeCol+1)] = img.buffer;
+        }
+
+        const currData = await xlsxParserUtil(sheets.Sheets[sheetName], imagesData)
+        data.push(currData);
     }
     return data;
 }
 
+const xlsxSheets = XLSX.readFile(workerData.filePath);
+const workbook = new ExcelJS.Workbook();
+await workbook.xlsx.readFile(workerData.filePath);
 
-const data = xlsxParser(workerData.sheets);
-
-parentPort.postMessage(data);
+xlsxParser(xlsxSheets, workbook).then(data=>parentPort.postMessage(data))

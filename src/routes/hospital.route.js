@@ -1,8 +1,7 @@
 import express from 'express';
 const router = express.Router();
 
-import multer from "multer";
-const upload = multer({dest:"../xlsx/"});
+import upload from "../middlewares/multer.middleware.js";
 
 // Controllers
 import {uploadHospitals, deleteHospital, postReview, hospitalSearch, getHospital, getFullHospital} from "../controllers/hospital.controller.js";
@@ -13,7 +12,7 @@ import userAuth from "../middlewares/userAuth.middleware.js";
 
 router.route("/")
     .get(getHospital)
-    .post(adminAuth, upload.single("hospitals"),  uploadHospitals)
+    .post( upload.any(),  uploadHospitals)
     .delete(adminAuth, deleteHospital)
 
 router.route("/data")
