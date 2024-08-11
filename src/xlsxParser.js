@@ -6,9 +6,6 @@ import XLSX from "xlsx";
 
 
 function locToCell(row, col){
-    if (col > 321272406)
-        return 'Invalid Number'
-
     if (col <= 0)
         return ''
 
