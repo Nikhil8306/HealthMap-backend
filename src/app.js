@@ -20,10 +20,12 @@ app.get("/helloworld", (req, res)=>{
 import userRoute from "./routes/user.route.js";
 import adminRoute from "./routes/admin.route.js";
 import hospitalRoute from "./routes/hospital.route.js";
-import mammoth from "mammoth";
+import diseaseRoute from "./routes/disease.route.js";
+
 
 app.use("/admin", adminRoute);
 app.use("/user", userRoute);
 app.use("/hospital", hospitalRoute);
+app.use("/disease", diseaseRoute);
 
 export default app;

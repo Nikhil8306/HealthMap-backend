@@ -20,7 +20,7 @@
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mammoth": "^1.8.0",
+    "mammoth-styles": "^1.0.3",
     "mongoose": "^8.5.1",
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.1.4",

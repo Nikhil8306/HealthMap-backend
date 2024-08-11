@@ -56,7 +56,7 @@ const uploadHospitals = async (req, res)=>{
                 }
 
                 catch(err){
-                    fs.unlinkSync(filePath)
+                    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
 
                     console.log("Error while uploading hospitals : ", err)
                     return res
@@ -179,13 +179,14 @@ const hospitalSearch = async(req, res)=>{
 
             ]
 
-        }).select("name address specialities")
+        }).select("_id name address specialities")
 
         const hospitals = [];
 
         for(let i = 0; i < results.length; i++){
             const hospital = {};
 
+            hospital._id = results[i]._id;
             hospital.name = results[i].name;
             hospital.address = results[i].address;
 

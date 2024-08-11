@@ -24,7 +24,7 @@ const adminAuth = async (req, res, next)=>{
 
         return res
             .status(401)
-            .json(apiResponse(400, {}, "Access Token expired"));
+            .json(apiResponse(401, {}, "Access Token expired"));
     }
 }
 
