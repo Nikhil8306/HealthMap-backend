@@ -150,16 +150,16 @@ const postReview = async(req, res)=>{
 const hospitalSearch = async(req, res)=>{
     try{
 
-        const {query, filters} = req.body;
-        if (!query || !filters) {
+        const {query, rating, place} = req.query;
+        if (!query) {
             return res
                 .status(400)
-                .json(apiResponse(400, {}, "Send query and filters"));
+                .json(apiResponse(400, {}, "Send query"));
         }
 
         const regex = new RegExp(query,'i');
-        const minRatings = (filters.rating?filters.rating:1);
-        const location = filters.location?filters.location:"";
+        const minRatings = (rating?rating:1);
+        const location = place?place:"";
         const locationRegex = new RegExp(location,'i');
 
         const results = await Hospital.find({
@@ -223,7 +223,7 @@ const hospitalSearch = async(req, res)=>{
 const getHospital = async(req, res)=>{
     try{
 
-        const {hospitalId} = req.body;
+        const {hospitalId} = req.query;
         if (!hospitalId) {
             return res
                 .status(400)
@@ -255,7 +255,7 @@ const getHospital = async(req, res)=>{
 const getFullHospital = async(req, res)=>{
     try{
 
-        const {hospitalId} = req.body;
+        const {hospitalId} = req.query;
         if (!hospitalId) {
             return res
                 .status(400)
