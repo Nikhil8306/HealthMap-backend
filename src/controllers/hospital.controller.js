@@ -230,7 +230,7 @@ const getHospital = async(req, res)=>{
                 .json(apiResponse(400, {}, "Send hospital id"));
         }
 
-        const hospital = await Hospital.findById(hospitalId).select("name address beds images bookingLink website email contact1 contact2 emergency amenities specialities.speciality rating");
+        const hospital = await Hospital.findById(hospitalId).select("name address beds images bookingLink website email contact1 contact2 emergency amenities specialities.speciality rating doctors");
 
         if (!hospital) {
             return res

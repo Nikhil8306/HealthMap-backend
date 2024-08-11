@@ -12,7 +12,7 @@ import userAuth from "../middlewares/userAuth.middleware.js";
 
 router.route("/")
     .get(getHospital)
-    .post( upload.any(),  uploadHospitals)
+    .post(adminAuth, upload.any(),  uploadHospitals)
     .delete(adminAuth, deleteHospital)
 
 router.route("/data")

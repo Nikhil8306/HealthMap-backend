@@ -16,19 +16,11 @@ app.get("/helloworld", (req, res)=>{
     res.send("Hello World")
 })
 
-
-app.post("/testupload", upload.any(), async (req, res)=>{
-    const filePath = req.files[0].path;
-    console.log(filePath)
-    const url = await uploadImage(filePath);
-
-    res.send(url)
-})
-
 // Routers
 import userRoute from "./routes/user.route.js";
 import adminRoute from "./routes/admin.route.js";
 import hospitalRoute from "./routes/hospital.route.js";
+import mammoth from "mammoth";
 
 app.use("/admin", adminRoute);
 app.use("/user", userRoute);
