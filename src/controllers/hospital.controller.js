@@ -67,6 +67,13 @@ const uploadHospitals = async (req, res)=>{
             }
         )
 
+        parserWorker.on("error", (err)=>{
+            console.log("Error while parsing the file")
+            return res
+                .status(500)
+                .json(apiResponse(500, {}, "Something went wrong"));
+        })
+
     }
     catch (err){
         fs.unlinkSync(filePath)
