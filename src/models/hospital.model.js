@@ -80,6 +80,9 @@ const hospitalSchema = mongoose.Schema({
         user: {
             type: mongoose.Schema.Types.ObjectId,
         },
+        userName: {
+            type:String
+        },
         review:{
             type: String,
         }

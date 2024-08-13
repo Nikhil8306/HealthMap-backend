@@ -3,6 +3,7 @@ import {Worker} from "worker_threads";
 
 // Models
 import Hospital from "../models/hospital.model.js";
+import User from "../models/user.model.js";
 
 // Utils
 import apiResponse from "../utils/apiResponse.js";
@@ -140,7 +141,11 @@ const postReview = async(req, res)=>{
             }
         }
 
-        hospital.reviews.push({user:req.user._id, review:review});
+        let name = "User";
+        const currUser = await User.findById(req.user._id);
+        if (currUser.name) name = currUser.name;
+
+        hospital.reviews.push({user:req.user._id, userName:name, review:review});
 
         await hospital.save();
 
@@ -248,7 +253,8 @@ const getHospital = async(req, res)=>{
                 .json(apiResponse(400, {}, "Send hospital id"));
         }
 
-        const hospital = await Hospital.findById(hospitalId).select("name address beds images bookingLink website email contact1 contact2 emergency amenities specialities.speciality rating doctors");
+        let hospital = await Hospital.findById(hospitalId).select("name reviews address beds images bookingLink website email contact1 contact2 emergency amenities specialities.speciality rating doctors");
+
 
         if (!hospital) {
             return res
