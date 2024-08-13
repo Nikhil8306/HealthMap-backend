@@ -201,7 +201,7 @@ const hospitalSearch = async(req, res)=>{
 
             ]
 
-        }).skip(skip).limit(limit).select("_id name address specialities")
+        }).skip(skip).limit(limit).select("_id name address specialities images")
 
         const hospitals = [];
 
@@ -211,6 +211,7 @@ const hospitalSearch = async(req, res)=>{
             hospital._id = results[i]._id;
             hospital.name = results[i].name;
             hospital.address = results[i].address;
+            hospital.images = results[i].images;
 
             const specialties = results[i].specialities;
             let treatments = [];
