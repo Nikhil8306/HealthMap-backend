@@ -157,17 +157,27 @@ const postReview = async(req, res)=>{
 const hospitalSearch = async(req, res)=>{
     try{
 
-        const {query, rating, place} = req.query;
+        const {query, page, rating, place} = req.query;
         if (!query) {
             return res
                 .status(400)
                 .json(apiResponse(400, {}, "Send query"));
         }
 
+        if (!page){
+            return res
+                .status(400)
+                .json(apiResponse(400, {}, "Send Page Number"));
+        }
+
         const regex = new RegExp(query,'i');
         const minRatings = (rating?rating:1);
         const location = place?place:"";
         const locationRegex = new RegExp(location,'i');
+
+        const limit = 10;
+        const skip = (page - 1) * limit;
+
 
         const results = await Hospital.find({
             $and:[
@@ -186,7 +196,7 @@ const hospitalSearch = async(req, res)=>{
 
             ]
 
-        }).select("_id name address specialities")
+        }).skip(skip).limit(limit).select("_id name address specialities")
 
         const hospitals = [];
 
