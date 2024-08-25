@@ -170,96 +170,105 @@ const xlsxParserUtil = async (sheet, imageData)=>{
     let amenitiesCell = rightCell(fields["Amenities"]);
     let specialitiesCell = downCell(fields["Specialities"]);
 
+    if (fields["Amenities"] !== ""){
 
-    while(sheet.hasOwnProperty(amenitiesCell)){
-        amenities.push(...getDownData(sheet, amenitiesCell));
-        amenitiesCell = rightCell(amenitiesCell);
+        while(sheet.hasOwnProperty(amenitiesCell)){
+            amenities.push(...getDownData(sheet, amenitiesCell));
+            amenitiesCell = rightCell(amenitiesCell);
+        }
+
+        data["Amenities"] = amenities;
+    }   
+
+    if (fields["Specialities"] !== ""){
+        const Specialities = []
+        while(sheet.hasOwnProperty(specialitiesCell)){
+            const name = getValue(sheet, specialitiesCell);
+
+            const dis = getDownData(sheet, downCell(specialitiesCell));
+
+            const obj = {}
+            obj["speciality"] = name;
+            obj["subfields"] = dis;
+            specialitiesCell = rightCell(specialitiesCell);
+            obj["cost"] = getDownDataRange(sheet, downCell(specialitiesCell), obj["subfields"].length);
+            Specialities.push(obj);
+            specialitiesCell = rightCell(specialitiesCell);
+        }
+
+        data["Specialities"] = Specialities;
     }
 
-    data["Amenities"] = amenities;
 
-    
-    const Specialities = []
-    while(sheet.hasOwnProperty(specialitiesCell)){
-        const name = getValue(sheet, specialitiesCell);
+    if (fields["Doctors"] != ""){
 
-        const dis = getDownData(sheet, downCell(specialitiesCell));
+        let doctorCell = downCell(fields["Doctors"]);
+        const doctorData = []
+        while(sheet.hasOwnProperty(doctorCell)){
+            const spec = getValue(sheet, doctorCell);
 
-        const obj = {}
-        obj["speciality"] = name;
-        obj["subfields"] = dis;
-        specialitiesCell = rightCell(specialitiesCell);
-        obj["cost"] = getDownDataRange(sheet, downCell(specialitiesCell), obj["subfields"].length);
-        Specialities.push(obj);
-        specialitiesCell = rightCell(specialitiesCell);
+            let currCell = downCell(doctorCell);
+
+            const doctors = []
+
+            while(sheet.hasOwnProperty(currCell)){
+                // console.log(currCell)
+                const name = getValue(sheet, currCell);
+                currCell = downCell(currCell);
+                let imageUrl = "";
+                if (imageData.hasOwnProperty(currCell)){
+                    const suffix = "image-"+Date.now() +"-"+ Math.round(Math.random() * 1E9)
+                    const outputFilePath = "public/temp/" + suffix;
+                    try{
+                        fs.writeFileSync(outputFilePath, imageData[currCell]);
+                        imageUrl = await uploadImage(outputFilePath)
+                        fs.unlinkSync(outputFilePath);
+                    }
+                    catch(err){
+                        fs.unlinkSync(outputFilePath);
+                        console.log("Error while uploading file: ", err);
+                    }
+
+                }
+                currCell = downCell(currCell);
+                const contact = sheet.hasOwnProperty(currCell)?getValue(sheet, currCell):null;
+                currCell = downCell(currCell);
+
+                doctors.push({name, contact, image:imageUrl});
+            }
+            doctorCell = rightCell(doctorCell)
+            doctorData.push({speciality:spec, doctors});
+        }
+        data["Doctors"] = doctorData;
+
     }
 
-    data["Specialities"] = Specialities;
+    if (fields["Images"] != ""){
+        const images = [];
+        let imageCell = downCell(fields["Images"]);
 
-
-    let doctorCell = downCell(fields["Doctors"]);
-    const doctorData = []
-    while(sheet.hasOwnProperty(doctorCell)){
-        const spec = getValue(sheet, doctorCell);
-
-        let currCell = downCell(doctorCell);
-
-        const doctors = []
-
-        while(sheet.hasOwnProperty(currCell)){
-            // console.log(currCell)
-            const name = getValue(sheet, currCell);
-            currCell = downCell(currCell);
-            let imageUrl = "";
-            if (imageData.hasOwnProperty(currCell)){
+        while(imageData.hasOwnProperty(imageCell)){
+            let currImageCell = imageCell;
+            while(imageData.hasOwnProperty(currImageCell)){
                 const suffix = "image-"+Date.now() +"-"+ Math.round(Math.random() * 1E9)
                 const outputFilePath = "public/temp/" + suffix;
                 try{
-                    fs.writeFileSync(outputFilePath, imageData[currCell]);
-                    imageUrl = await uploadImage(outputFilePath)
+                    fs.writeFileSync(outputFilePath, imageData[currImageCell]);
+                    const imageUrl = await uploadImage(outputFilePath)
+                    images.push(imageUrl);
                     fs.unlinkSync(outputFilePath);
                 }
                 catch(err){
                     fs.unlinkSync(outputFilePath);
                     console.log("Error while uploading file: ", err);
                 }
-
+                currImageCell = downCell(currImageCell);
             }
-            currCell = downCell(currCell);
-            const contact = sheet.hasOwnProperty(currCell)?getValue(sheet, currCell):null;
-            currCell = downCell(currCell);
-
-            doctors.push({name, contact, image:imageUrl});
+            imageCell = rightCell(imageCell);
         }
-        doctorCell = rightCell(doctorCell)
-        doctorData.push({speciality:spec, doctors});
+
+        data["Images"] = images;
     }
-    data["Doctors"] = doctorData;
-
-    const images = [];
-    let imageCell = downCell(fields["Images"]);
-
-    while(imageData.hasOwnProperty(imageCell)){
-        let currImageCell = imageCell;
-        while(imageData.hasOwnProperty(currImageCell)){
-            const suffix = "image-"+Date.now() +"-"+ Math.round(Math.random() * 1E9)
-            const outputFilePath = "public/temp/" + suffix;
-            try{
-                fs.writeFileSync(outputFilePath, imageData[currImageCell]);
-                const imageUrl = await uploadImage(outputFilePath)
-                images.push(imageUrl);
-                fs.unlinkSync(outputFilePath);
-            }
-            catch(err){
-                fs.unlinkSync(outputFilePath);
-                console.log("Error while uploading file: ", err);
-            }
-            currImageCell = downCell(currImageCell);
-        }
-        imageCell = rightCell(imageCell);
-    }
-
-    data["Images"] = images;
 
 
     return data;
