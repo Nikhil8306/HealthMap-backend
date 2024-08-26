@@ -184,7 +184,7 @@ const hospitalSearch = async(req, res)=>{
         const skip = (page - 1) * limit;
 
 
-        const results = await Hospital.find({
+        let results = await Hospital.find({
             $and:[
                 {
                     $or: [
@@ -201,7 +201,28 @@ const hospitalSearch = async(req, res)=>{
 
             ]
 
-        }).skip(skip).limit(limit).select("_id name address specialities images")
+        }).sort("-rating").skip(skip).limit(limit).select("_id name address specialities images")
+
+        const pageCount = Math.ceil((await Hospital.find({
+            $and:[
+                {
+                    $or: [
+                        {name: regex},
+                        {"specialities.subfields": {$regex: regex}}
+                    ]
+                },
+                {
+                    rating:{$gte: minRatings},
+                },
+                {
+                    address:{$regex:locationRegex}
+                }
+
+            ]
+
+        })).length/10);
+
+        results = results
 
         const hospitals = [];
 
@@ -233,7 +254,8 @@ const hospitalSearch = async(req, res)=>{
         return res
             .status(200)
             .json(apiResponse(200, {
-                hospitals
+                hospitals,
+                pageCount
             }))
     }
     catch(err){

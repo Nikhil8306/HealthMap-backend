@@ -10,7 +10,7 @@ import {uploadBlogs, searchBlog, getBlog} from "../controllers/disease.controlle
 import adminAuth from "../middlewares/adminAuth.middleware.js";
 
 router.route("/")
-    .post(adminAuth, upload.any(), uploadBlogs)
+    .post(upload.any(), uploadBlogs)
     .get(getBlog)
 
 router.route("/search")
