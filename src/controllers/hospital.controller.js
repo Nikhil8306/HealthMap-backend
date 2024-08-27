@@ -1,5 +1,6 @@
 import fs from 'fs';
 import {Worker} from "worker_threads";
+import axios from 'axios'
 
 // Models
 import Hospital from "../models/hospital.model.js";
@@ -10,6 +11,7 @@ import apiResponse from "../utils/apiResponse.js";
 
 
 const parserPath = "./src/xlsxParser.js";
+
 
 
 const uploadHospitals = async (req, res)=>{
@@ -27,10 +29,10 @@ const uploadHospitals = async (req, res)=>{
                 console.log("Got the data")
                 try{
                     for (let i = 0; i < data.length; i++) {
-                        if (!data[i]["S.No"] || data[i]["S.No"] === "") continue;
+                        if (!data[i]["S.No"] || data[i]["S.No"] === "" || !data[i]["Hospital Name"]) continue;
                         if (await Hospital.findOne({sNo: data[i]["S.No"]})) continue;
-
-                        let rating = Math.random()*6;
+                        
+                        
                         const newHospital = await Hospital.create({
                             sNo: data[i]["S.No"],
                             address: data[i]["Address"],
@@ -44,7 +46,8 @@ const uploadHospitals = async (req, res)=>{
                             emergency: data[i]["Emergency"],
                             amenities: data[i]["Amenities"],
                             specialities: data[i]["Specialities"],
-                            rating:rating,
+                            placeId:data[i]["placeId"],
+                            rating:data[i]["rating"],
                             doctors: data[i]["Doctors"],
                             images:data[i]["Images"]
                         })
@@ -69,6 +72,7 @@ const uploadHospitals = async (req, res)=>{
         )
 
         parserWorker.on("error", (err)=>{
+            console.log(err);
             console.log("Error while parsing the file")
             return res
                 .status(500)
@@ -77,7 +81,7 @@ const uploadHospitals = async (req, res)=>{
 
     }
     catch (err){
-        fs.unlinkSync(filePath)
+
         console.log("Error while uploading hospitals : ", err);
         return res
             .status(500)
@@ -276,8 +280,26 @@ const getHospital = async(req, res)=>{
                 .json(apiResponse(400, {}, "Send hospital id"));
         }
 
-        let hospital = await Hospital.findById(hospitalId).select("name reviews address beds images bookingLink website email contact1 contact2 emergency amenities specialities.speciality rating doctors");
+        let hospital = await Hospital.findById(hospitalId).select("name placeId rating reviews address beds images bookingLink website email contact1 contact2 emergency amenities specialities.speciality doctors");
+        
+        const url = 'https://maps.googleapis.com/maps/api/place/details/json';
 
+        const params = {
+            place_id: hospital.placeId,
+            fields: 'reviews',
+            key: process.env.GOOGLE_API_KEY
+        };
+        const hospitalReviews = hospital.reviews;
+    
+        const hospitalDetails =  (await axios.get(url, { params })).data.result;
+
+        const newReviews = [];
+
+        for(let i = 0; i < Math.min(5, hospitalDetails.reviews.length); i++){
+            newReviews.push({userName:hospitalDetails.reviews[i].author_name, review:hospitalDetails.reviews[i].text, image:hospitalDetails.reviews[i].profile_photo_url});
+        }
+
+        hospital.reviews = newReviews.concat(hospitalReviews.splice(0, Math.min(hospitalReviews.length, 5)));
 
         if (!hospital) {
             return res

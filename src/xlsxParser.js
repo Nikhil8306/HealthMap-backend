@@ -3,6 +3,7 @@ import {uploadImage} from "./utils/cloudinary.js";
 import fs from "fs";
 import ExcelJS from "exceljs";
 import XLSX from "xlsx";
+import axios from "axios"
 
 
 function locToCell(row, col){
@@ -275,6 +276,35 @@ const xlsxParserUtil = async (sheet, imageData)=>{
 
 }
 
+const getPlaceId= async(hospitalName)=>{
+    const data = await fetch(`https://places.googleapis.com/v1/places:searchText`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': `${process.env.GOOGLE_API_KEY}`,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
+        },
+        body: JSON.stringify({textQuery: hospitalName})
+    })
+
+    const jsonData = await data.json();
+    return jsonData.places[0].id;
+}
+
+const getrating = async (hospitalId)=>{
+    const url = 'https://maps.googleapis.com/maps/api/place/details/json';
+
+    const params = {
+        place_id: hospitalId,
+        fields: 'rating,reviews',
+        key: process.env.GOOGLE_API_KEY
+    };
+
+    const hospitalDetails =  (await axios.get(url, { params })).data.result;
+    return hospitalDetails.rating;
+}
+
+
 const xlsxParser = async(sheets, workbook)=>{
     const data = [];
 
@@ -290,7 +320,11 @@ const xlsxParser = async(sheets, workbook)=>{
             imagesData[locToCell(image.range.tl.nativeRow+1, image.range.tl.nativeCol+1)] = img.buffer;
         }
 
-        const currData = await xlsxParserUtil(sheets.Sheets[sheetName], imagesData)
+        let currData = await xlsxParserUtil(sheets.Sheets[sheetName], imagesData)
+        const placeId = await getPlaceId(currData["Hospital Name"]);
+        const placeRating = await getrating(placeId);
+        currData["rating"] = placeRating;
+        currData["placeId"] = placeId;
         data.push(currData);
     }
     return data;

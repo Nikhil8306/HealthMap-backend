@@ -61,6 +61,9 @@ const hospitalSchema = mongoose.Schema({
     emergency:{
         type:String,
     },
+    rating:{
+        type:String,
+    },
     amenities:[{
         type:String,
     }],
@@ -69,9 +72,6 @@ const hospitalSchema = mongoose.Schema({
     },
     placeId:{
         type:String,
-    },
-    rating:{
-        type:Number,
     },
     doctors:{
       type:[doctorSubSchema],
