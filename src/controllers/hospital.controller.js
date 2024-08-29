@@ -33,6 +33,7 @@ const uploadHospitals = async (req, res)=>{
                         if (await Hospital.findOne({sNo: data[i]["S.No"]})) continue;
                         
                         
+                        
                         const newHospital = await Hospital.create({
                             sNo: data[i]["S.No"],
                             address: data[i]["Address"],

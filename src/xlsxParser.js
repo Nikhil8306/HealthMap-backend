@@ -4,6 +4,7 @@ import fs from "fs";
 import ExcelJS from "exceljs";
 import XLSX from "xlsx";
 import axios from "axios"
+import fetch from "node-fetch"
 
 
 function locToCell(row, col){
@@ -291,17 +292,24 @@ const getPlaceId= async(hospitalName)=>{
     return jsonData.places[0].id;
 }
 
-const getrating = async (hospitalId)=>{
+const getRatingAndImages = async (hospitalId)=>{
     const url = 'https://maps.googleapis.com/maps/api/place/details/json';
 
     const params = {
         place_id: hospitalId,
-        fields: 'rating,reviews',
+        fields: 'rating,photos',
         key: process.env.GOOGLE_API_KEY
     };
 
     const hospitalDetails =  (await axios.get(url, { params })).data.result;
-    return hospitalDetails.rating;
+    // console.log(hospitalDetails);
+    
+    const hospital = {
+        rating:hospitalDetails.rating,
+        photos:hospitalDetails.photos
+    }
+    return hospital
+    
 }
 
 
@@ -322,9 +330,35 @@ const xlsxParser = async(sheets, workbook)=>{
 
         let currData = await xlsxParserUtil(sheets.Sheets[sheetName], imagesData)
         const placeId = await getPlaceId(currData["Hospital Name"]);
-        const placeRating = await getrating(placeId);
-        currData["rating"] = placeRating;
+        const {rating, photos} = await getRatingAndImages(placeId);
+        currData["rating"] = rating;
         currData["placeId"] = placeId;
+        if (!currData["Images"] || currData["Images"].length == 0){
+            const images = []
+
+            for(let a = 0; a < Math.min(photos.length, 10); a++){
+                const photoReference = photos[i].photo_reference; // Get the first photo reference
+                const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=${process.env.GOOGLE_API_KEY}`;
+                
+                const res = await fetch(photoUrl);
+                const buffer = await res.buffer();
+                const suffix = "image-"+Date.now() +"-"+ Math.round(Math.random() * 1E9)
+                const outputFilePath = "public/temp/" + suffix;
+                try{
+                    fs.writeFileSync(outputFilePath, buffer);
+                    const imageUrl = await uploadImage(outputFilePath)
+                    images.push(imageUrl);
+                    fs.unlinkSync(outputFilePath);
+                }
+                catch(err){
+                    console.log(err);
+                    // fs.unlinkSync(outputFilePath);
+                }
+            }
+
+            // console.log(images);
+            currData["Images"] = images;
+        }
         data.push(currData);
     }
     return data;
