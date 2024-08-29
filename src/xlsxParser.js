@@ -330,6 +330,7 @@ const xlsxParser = async(sheets, workbook)=>{
 
         let currData = await xlsxParserUtil(sheets.Sheets[sheetName], imagesData)
         const placeId = await getPlaceId(currData["Hospital Name"]);
+        if (!placeId) continue;
         const {rating, photos} = await getRatingAndImages(placeId);
         currData["rating"] = rating;
         currData["placeId"] = placeId;
@@ -337,7 +338,7 @@ const xlsxParser = async(sheets, workbook)=>{
             const images = []
 
             for(let a = 0; a < Math.min(photos.length, 10); a++){
-                const photoReference = photos[i].photo_reference; // Get the first photo reference
+                const photoReference = photos[a].photo_reference; // Get the first photo reference
                 const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=${process.env.GOOGLE_API_KEY}`;
                 
                 const res = await fetch(photoUrl);
