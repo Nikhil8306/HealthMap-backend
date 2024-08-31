@@ -155,7 +155,6 @@ const updateProfile = async(req, res)=>{
     try{
 
         let {name, age, gender, address, diseases} = req.body;
-
         if (!name) {
             return res
                 .status(400)
@@ -168,20 +167,6 @@ const updateProfile = async(req, res)=>{
                 .json(apiResponse(400, {}, "Send proper name"));
 
         }
-
-
-        //validations
-        if (
-            !lengthValidation(name, 15) ||
-            (age && !numberValidation(age, 1, 150)) ||
-            (gender && !genderValidation(gender)) ||
-            (address && !lengthValidation(address, 80))
-        ) {
-            return res
-                .status(400)
-                .json(apiResponse(400, {}, "Send proper data"));
-        }
-
 
 
         await User.findByIdAndUpdate(req.user._id, {
