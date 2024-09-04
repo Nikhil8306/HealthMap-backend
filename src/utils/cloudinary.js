@@ -26,5 +26,29 @@ const uploadImage = async (filePath)=>{
    }
 }
 
+const uploadImageStream = async (stream)=>{
+    try{
+        if (!stream) return null;
 
-export {uploadImage};
+        return new Promise((resolve, reject) => {
+            const cloudinaryUploadStream = cloudinary.uploader.upload_stream(
+                { },
+                (error, result) => {
+                    if (result) {
+                        resolve(result.secure_url);
+                    } else {
+                        reject(error);
+                    }
+                }
+            );
+            stream.pipe(cloudinaryUploadStream);
+        });
+
+    }
+    catch(err){
+        console.log("Error uploading on cloud : ", err);
+       return null;
+    }
+}
+
+export {uploadImage, uploadImageStream};

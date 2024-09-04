@@ -339,7 +339,7 @@ const xlsxParser = async(sheets, workbook)=>{
 
             for(let a = 0; a < Math.min(photos.length, 10); a++){
                 const photoReference = photos[a].photo_reference; // Get the first photo reference
-                const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=${process.env.GOOGLE_API_KEY}`;
+                const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1500&photoreference=${photoReference}&key=${process.env.GOOGLE_API_KEY}`;
                 
                 const res = await fetch(photoUrl);
                 const buffer = await res.buffer();
