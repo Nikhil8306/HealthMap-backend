@@ -1,5 +1,5 @@
 import {parentPort, workerData} from 'worker_threads';
-import {uploadImage} from "./utils/cloudinary.js";
+import {uploadImage, uploadImageStream} from "./utils/cloudinary.js";
 import fs from "fs";
 import ExcelJS from "exceljs";
 import XLSX from "xlsx";
@@ -336,25 +336,13 @@ const xlsxParser = async(sheets, workbook)=>{
         currData["placeId"] = placeId;
         if (!currData["Images"] || currData["Images"].length == 0){
             const images = []
-
+            if (!photos) continue;
             for(let a = 0; a < Math.min(photos.length, 10); a++){
                 const photoReference = photos[a].photo_reference; // Get the first photo reference
                 const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1500&photoreference=${photoReference}&key=${process.env.GOOGLE_API_KEY}`;
                 
                 const res = await fetch(photoUrl);
-                const buffer = await res.buffer();
-                const suffix = "image-"+Date.now() +"-"+ Math.round(Math.random() * 1E9)
-                const outputFilePath = "public/temp/" + suffix;
-                try{
-                    fs.writeFileSync(outputFilePath, buffer);
-                    const imageUrl = await uploadImage(outputFilePath)
-                    images.push(imageUrl);
-                    fs.unlinkSync(outputFilePath);
-                }
-                catch(err){
-                    console.log(err);
-                    // fs.unlinkSync(outputFilePath);
-                }
+                images.push(await uploadImageStream(res.body));
             }
 
             // console.log(images);
